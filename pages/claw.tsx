@@ -1,94 +1,150 @@
 import { useState } from "react";
+import Image from "next/image";
 import { Space_Grotesk } from "next/font/google";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useBalance } from "wagmi";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["400", "500", "700"],
 });
 
-function NftCard({ side }: { side: "left" | "right" }) {
-  const isLeft = side === "left";
+function DancingLobster() {
+  const lobster = `
+      ,---./\\
+     /  0   \\\\
+    | \\_ _/  |
+     \\  ~  //
+   ___\\'--'/___
+  /    ||||    \\
+ / /\\  ||  /\\ \\
+{  /  \\ || /  \\  }
+ \\/    \\||/    \\/
+        ||
+       /  \\
+      /    \\
+     /      \\
+    |_      _|
+      |    |
+      |    |
+  `;
+
   return (
     <div
       style={{
-        width: 280,
-        background: "rgba(93, 42, 142, 0.25)",
-        border: "1px solid rgba(196, 87, 208, 0.3)",
-        borderRadius: 16,
-        overflow: "hidden",
-        backdropFilter: "blur(12px)",
+        width: 200,
+        flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        flexShrink: 0,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
       }}
     >
-      {/* NFT Image placeholder */}
-      <div
+      <style>{`
+        @keyframes lobster-dance {
+          0%, 100% { transform: rotate(0deg) translateY(0); }
+          15% { transform: rotate(-8deg) translateY(-6px); }
+          30% { transform: rotate(8deg) translateY(0); }
+          45% { transform: rotate(-5deg) translateY(-8px); }
+          60% { transform: rotate(6deg) translateY(-2px); }
+          75% { transform: rotate(-3deg) translateY(-6px); }
+          90% { transform: rotate(4deg) translateY(0); }
+        }
+        @keyframes claw-snap {
+          0%, 70%, 100% { transform: scaleX(1); }
+          80% { transform: scaleX(0.85); }
+          90% { transform: scaleX(1.05); }
+        }
+      `}</style>
+      <pre
         style={{
-          width: "100%",
-          aspectRatio: "1",
-          background: isLeft
-            ? "linear-gradient(135deg, #5D2A8E 0%, #C457D0 100%)"
-            : "linear-gradient(135deg, #C457D0 0%, #E5B6F2 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "3rem",
+          fontFamily: "monospace",
+          fontSize: "0.65rem",
+          lineHeight: 1.15,
+          color: "#C457D0",
+          textShadow: "0 0 12px rgba(196, 87, 208, 0.5)",
+          margin: 0,
+          textAlign: "center",
+          animation: "lobster-dance 1.6s ease-in-out infinite",
+          whiteSpace: "pre",
         }}
       >
-        {isLeft ? "🎮" : "🏆"}
-      </div>
+        {lobster}
+      </pre>
+      <span
+        style={{
+          fontSize: "0.75rem",
+          color: "#B284BE",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          fontWeight: 600,
+        }}
+      >
+        Player
+      </span>
+    </div>
+  );
+}
 
-      {/* NFT Info */}
-      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        <span
-          style={{
-            fontSize: "0.75rem",
-            color: "#B284BE",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-          }}
-        >
-          {isLeft ? "Your NFT" : "Prize NFT"}
-        </span>
-        <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "#E5B6F2" }}>
-          {isLeft ? "Claw Machine Pass" : "Rare Collectible"}
-        </span>
-        <span style={{ fontSize: "0.85rem", color: "#B284BE" }}>
-          {isLeft ? "Entry ticket to play the claw game" : "Win this exclusive NFT"}
-        </span>
+function ClawArt() {
+  const claw = `
+    \\___/
+     | |
+     | |
+    /   \\
+   / ___ \\
+  | /   \\ |
+  |/     \\|
+   \\     /
+    \\   /
+     \\_/
+      |
+      |
+   ,--+--.
+  /  0G   \\
+ |  CLAW   |
+  \\       /
+   '-----'
+  `;
 
-        <div
-          style={{
-            marginTop: 8,
-            padding: "8px 12px",
-            background: "rgba(50, 10, 70, 0.5)",
-            borderRadius: 8,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontSize: "0.75rem", color: "#D1D1D1" }}>Floor</span>
-          <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "#C457D0" }}>
-            {isLeft ? "0.05 ETH" : "1.2 ETH"}
-          </span>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "6px 12px",
-            background: "rgba(50, 10, 70, 0.3)",
-            borderRadius: 8,
-          }}
-        >
-          <span style={{ fontSize: "0.75rem", color: "#D1D1D1" }}>Owner</span>
-          <span style={{ fontSize: "0.75rem", color: "#B284BE" }}>0x3f...a1c2</span>
-        </div>
-      </div>
+  return (
+    <div
+      style={{
+        width: 200,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+      }}
+    >
+      <pre
+        style={{
+          fontFamily: "monospace",
+          fontSize: "0.7rem",
+          lineHeight: 1.2,
+          color: "#C457D0",
+          textShadow: "0 0 10px rgba(196, 87, 208, 0.4)",
+          margin: 0,
+          textAlign: "center",
+          animation: "claw-snap 2.5s ease-in-out infinite",
+        }}
+      >
+        {claw}
+      </pre>
+      <span
+        style={{
+          fontSize: "0.75rem",
+          color: "#B284BE",
+          textTransform: "uppercase",
+          letterSpacing: "0.1em",
+          fontWeight: 600,
+        }}
+      >
+        Dealer
+      </span>
     </div>
   );
 }
@@ -236,7 +292,194 @@ function ChatBox() {
   );
 }
 
+function InftModal({ onClose }: { onClose: () => void }) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [api, setApi] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [task, setTask] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const isValid = name && api && task;
+
+  const handleSubmit = () => {
+    if (!isValid) return;
+    setSubmitting(true);
+    // TODO: integrate actual INFT submit contract call
+    setTimeout(() => {
+      setSubmitting(false);
+      onClose();
+    }, 2000);
+  };
+
+  const inputStyle = {
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "1px solid rgba(178, 132, 190, 0.3)",
+    background: "rgba(50, 10, 70, 0.5)",
+    color: "#F8F9FA",
+    fontSize: "0.9rem",
+    outline: "none",
+    fontFamily: "inherit",
+  };
+
+  const labelStyle = {
+    fontSize: "0.8rem",
+    color: "#B284BE",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.06em",
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0, 0, 0, 0.6)",
+        backdropFilter: "blur(6px)",
+      }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        style={{
+          width: 440,
+          background: "#320A46",
+          border: "1px solid rgba(196, 87, 208, 0.3)",
+          borderRadius: 20,
+          padding: 28,
+          display: "flex",
+          flexDirection: "column",
+          gap: 20,
+        }}
+      >
+        {/* Modal header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: "#E5B6F2" }}>
+            Submit INFT
+          </h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#B284BE",
+              fontSize: "1.4rem",
+              cursor: "pointer",
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            x
+          </button>
+        </div>
+
+        {/* Name */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={labelStyle}>Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Enter INFT name"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* Description */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={labelStyle}>Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe your INFT"
+            rows={2}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </div>
+
+        {/* API */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={labelStyle}>API</label>
+          <input
+            value={api}
+            onChange={(e) => setApi(e.target.value)}
+            placeholder="Enter API endpoint"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* Schedule */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={labelStyle}>Schedule</label>
+          <input
+            value={schedule}
+            onChange={(e) => setSchedule(e.target.value)}
+            placeholder="e.g. every 24h, daily, weekly"
+            style={inputStyle}
+          />
+        </div>
+
+        {/* Task */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={labelStyle}>Task</label>
+          <textarea
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+            placeholder="Define the task for this INFT"
+            rows={2}
+            style={{ ...inputStyle, resize: "vertical" }}
+          />
+        </div>
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={!isValid || submitting}
+          style={{
+            padding: "14px 0",
+            fontSize: "1rem",
+            fontWeight: 700,
+            fontFamily: "inherit",
+            color: "#FFFFFF",
+            background: !isValid
+              ? "rgba(93, 42, 142, 0.3)"
+              : "linear-gradient(135deg, #5D2A8E, #C457D0)",
+            border: !isValid
+              ? "1px solid rgba(178, 132, 190, 0.2)"
+              : "none",
+            borderRadius: 12,
+            cursor: isValid ? "pointer" : "not-allowed",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            transition: "opacity 0.2s",
+            opacity: submitting ? 0.7 : 1,
+          }}
+          onMouseEnter={(e) => {
+            if (isValid) e.currentTarget.style.opacity = "0.85";
+          }}
+          onMouseLeave={(e) => {
+            if (isValid) e.currentTarget.style.opacity = "1";
+          }}
+        >
+          {submitting ? "Submitting..." : "Submit INFT"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Claw() {
+  const { address } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const [showInftModal, setShowInftModal] = useState(false);
+
+  const formattedBalance = balance
+    ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol ?? "0G"}`
+    : null;
+
   return (
     <div
       className={spaceGrotesk.className}
@@ -262,17 +505,26 @@ export default function Claw() {
           flexShrink: 0,
         }}
       >
-        <span
-          style={{
-            fontSize: "1.3rem",
-            fontWeight: 700,
-            color: "#E5B6F2",
-            letterSpacing: "-0.01em",
-            textTransform: "uppercase",
-          }}
-        >
-          0G Claw
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Image
+            src="/logo.jpg"
+            alt="0G Claw"
+            width={40}
+            height={40}
+            style={{ borderRadius: 8 }}
+          />
+          <span
+            style={{
+              fontSize: "1.3rem",
+              fontWeight: 700,
+              color: "#E5B6F2",
+              letterSpacing: "-0.01em",
+              textTransform: "uppercase",
+            }}
+          >
+            0G Claw
+          </span>
+        </div>
 
         <nav style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <a
@@ -300,9 +552,163 @@ export default function Claw() {
           >
             Play
           </a>
+          <button
+            onClick={() => setShowInftModal(true)}
+            style={{
+              color: "#B284BE",
+              background: "none",
+              border: "1px solid rgba(196, 87, 208, 0.3)",
+              padding: "6px 16px",
+              borderRadius: 999,
+              fontSize: "0.9rem",
+              fontWeight: 500,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#E5B6F2";
+              e.currentTarget.style.borderColor = "rgba(196, 87, 208, 0.6)";
+              e.currentTarget.style.background = "rgba(93, 42, 142, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#B284BE";
+              e.currentTarget.style.borderColor = "rgba(196, 87, 208, 0.3)";
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            INFT
+          </button>
         </nav>
 
-        <ConnectButton />
+        <ConnectButton.Custom>
+          {({ account, chain, openConnectModal, openAccountModal, openChainModal, mounted }) => {
+            const connected = mounted && account && chain;
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  ...(!mounted ? { opacity: 0, pointerEvents: "none", userSelect: "none" } : {}),
+                }}
+              >
+                {(() => {
+                  if (!connected) {
+                    return (
+                      <button
+                        onClick={openConnectModal}
+                        style={{
+                          padding: "10px 24px",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          color: "#FFFFFF",
+                          background: "linear-gradient(135deg, #5D2A8E, #C457D0)",
+                          border: "none",
+                          borderRadius: 999,
+                          cursor: "pointer",
+                          letterSpacing: "0.03em",
+                          transition: "opacity 0.2s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                      >
+                        Connect Wallet
+                      </button>
+                    );
+                  }
+
+                  if (chain.unsupported) {
+                    return (
+                      <button
+                        onClick={openChainModal}
+                        style={{
+                          padding: "10px 24px",
+                          fontSize: "0.9rem",
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          color: "#FFFFFF",
+                          background: "#a11",
+                          border: "none",
+                          borderRadius: 999,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Wrong Network
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button
+                        onClick={openChainModal}
+                        style={{
+                          padding: "8px 14px",
+                          fontSize: "0.8rem",
+                          fontWeight: 500,
+                          fontFamily: "inherit",
+                          color: "#E5B6F2",
+                          background: "rgba(93, 42, 142, 0.4)",
+                          border: "1px solid rgba(196, 87, 208, 0.3)",
+                          borderRadius: 999,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(93, 42, 142, 0.6)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "rgba(93, 42, 142, 0.4)";
+                        }}
+                      >
+                        {chain.name}
+                      </button>
+                      {formattedBalance && (
+                        <span
+                          style={{
+                            padding: "8px 14px",
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            color: "#C457D0",
+                            background: "rgba(50, 10, 70, 0.6)",
+                            border: "1px solid rgba(196, 87, 208, 0.2)",
+                            borderRadius: 999,
+                          }}
+                        >
+                          {formattedBalance}
+                        </span>
+                      )}
+                      <button
+                        onClick={openAccountModal}
+                        style={{
+                          padding: "8px 18px",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          fontFamily: "inherit",
+                          color: "#FFFFFF",
+                          background: "linear-gradient(135deg, #5D2A8E, #C457D0)",
+                          border: "none",
+                          borderRadius: 999,
+                          cursor: "pointer",
+                          transition: "opacity 0.2s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                      >
+                        {account.displayName}
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          }}
+        </ConnectButton.Custom>
       </header>
 
       {/* Main content: NFT left | Chat center | NFT right */}
@@ -316,10 +722,12 @@ export default function Claw() {
           alignItems: "stretch",
         }}
       >
-        <NftCard side="left" />
+        <DancingLobster />
         <ChatBox />
-        <NftCard side="right" />
+        <ClawArt />
       </div>
+
+      {showInftModal && <InftModal onClose={() => setShowInftModal(false)} />}
     </div>
   );
 }
