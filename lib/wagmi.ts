@@ -1,4 +1,5 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { metaMaskWallet } from "@rainbow-me/rainbowkit/wallets";
 import { defineChain } from "viem";
 
 export const zgTestnet = defineChain({
@@ -28,5 +29,11 @@ export const wagmiConfig = getDefaultConfig({
   projectId:
     process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
   chains: [zgTestnet],
+  wallets: [
+    {
+      groupName: "Popular",
+      wallets: [metaMaskWallet],
+    },
+  ],
   ssr: true,
 });
