@@ -1,78 +1,92 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import dynamic from "next/dynamic";
+import { Space_Grotesk } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
+  weight: ["500", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const Silk = dynamic(() => import("@/components/Silk"), { ssr: false });
 
 export default function Home() {
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div style={{ width: "100vw", height: "100vh", position: "relative", background: "#320A46" }}>
+      <Silk
+        speed={5}
+        scale={1}
+        color="#5D2A8E"
+        noiseIntensity={1.5}
+        rotation={0}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: "40%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "2.5rem",
+        }}
+      >
+        <h1
+          className={spaceGrotesk.className}
+          style={{
+            fontSize: "clamp(3rem, 8vw, 7rem)",
+            fontWeight: 700,
+            color: "#E5B6F2",
+            letterSpacing: "-0.02em",
+            textTransform: "uppercase",
+            pointerEvents: "none",
+            userSelect: "none",
+            textAlign: "center",
+            margin: 0,
+            textShadow: [
+              "0 1px 0 #B284BE",
+              "0 2px 0 #A374AE",
+              "0 3px 0 #94649E",
+              "0 4px 0 #85548E",
+              "0 5px 0 #76447E",
+              "0 6px 0 #67346E",
+              "0 7px 15px rgba(50, 10, 70, 0.6)",
+              "0 7px 30px rgba(50, 10, 70, 0.4)",
+              "0 0 40px rgba(196, 87, 208, 0.35)",
+            ].join(", "),
+          }}
+        >
+          0G Claw
+        </h1>
+        <button
+          className={spaceGrotesk.className}
+          style={{
+            padding: "14px 48px",
+            fontSize: "1.1rem",
+            fontWeight: 500,
+            color: "#E5B6F2",
+            background: "rgba(93, 42, 142, 0.3)",
+            border: "1px solid rgba(196, 87, 208, 0.4)",
+            borderRadius: "999px",
+            cursor: "pointer",
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            backdropFilter: "blur(8px)",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(196, 87, 208, 0.3)";
+            e.currentTarget.style.borderColor = "rgba(229, 182, 242, 0.6)";
+            e.currentTarget.style.color = "#FFFFFF";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(93, 42, 142, 0.3)";
+            e.currentTarget.style.borderColor = "rgba(196, 87, 208, 0.4)";
+            e.currentTarget.style.color = "#E5B6F2";
+          }}
+        >
+          Start
+        </button>
+      </div>
     </div>
   );
 }
