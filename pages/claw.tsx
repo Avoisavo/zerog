@@ -10,29 +10,50 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 function DancingLobster() {
-  const lobster = `
-      ,---./\\
-     /  0   \\\\
-    | \\_ _/  |
-     \\  ~  //
-   ___\\'--'/___
-  /    ||||    \\
- / /\\  ||  /\\ \\
-{  /  \\ || /  \\  }
- \\/    \\||/    \\/
-        ||
-       /  \\
-      /    \\
-     /      \\
-    |_      _|
-      |    |
-      |    |
-  `;
+  const claws = [
+    "        |\\    /|        ",
+    "        | \\  / |        ",
+    "        |  \\/  |        ",
+    "       /|      |\\       ",
+    "      / |      | \\      ",
+    "     /  |      |  \\     ",
+    "    /  /|      |\\  \\    ",
+    "   |  / |      | \\  |   ",
+    "   | /   \\    /   \\ |   ",
+    "   ||     \\  /     ||   ",
+    "   ||      \\/      ||   ",
+  ].join("\n");
+
+  const body = [
+    "    \\   ________   /    ",
+    "     \\ |        | /     ",
+    "      \\|   **   |/      ",
+    "       |  \\__/  |       ",
+    "       |________|       ",
+    "       |  ||||  |       ",
+    "       |  ||||  |       ",
+    "  ~~~~ |  ||||  | ~~~~  ",
+    "  ~~~~ |  ||||  | ~~~~  ",
+    "  ~~~~ |  ||||  | ~~~~  ",
+    "  ~~~~ |  ||||  | ~~~~  ",
+    "       |  ||||  |       ",
+    "       |  ||||  |       ",
+    "       /  ||||  \\       ",
+    "      / / |||| \\ \\      ",
+    "     / /  ||||  \\ \\     ",
+    "    /_/   ||||   \\_\\    ",
+    "          ||||          ",
+    "         / || \\         ",
+    "        /  ||  \\        ",
+    "       /  /  \\  \\       ",
+    "      /  /    \\  \\      ",
+    "     /__/      \\__\\     ",
+  ].join("\n");
 
   return (
     <div
       style={{
-        width: 200,
+        width: 240,
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
@@ -42,14 +63,11 @@ function DancingLobster() {
       }}
     >
       <style>{`
-        @keyframes lobster-dance {
-          0%, 100% { transform: rotate(0deg) translateY(0); }
-          15% { transform: rotate(-8deg) translateY(-6px); }
-          30% { transform: rotate(8deg) translateY(0); }
-          45% { transform: rotate(-5deg) translateY(-8px); }
-          60% { transform: rotate(6deg) translateY(-2px); }
-          75% { transform: rotate(-3deg) translateY(-6px); }
-          90% { transform: rotate(4deg) translateY(0); }
+        @keyframes claw-wave {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(-10deg); }
+          50% { transform: rotate(10deg); }
+          75% { transform: rotate(-6deg); }
         }
         @keyframes claw-snap {
           0%, 70%, 100% { transform: scaleX(1); }
@@ -57,21 +75,38 @@ function DancingLobster() {
           90% { transform: scaleX(1.05); }
         }
       `}</style>
-      <pre
-        style={{
-          fontFamily: "monospace",
-          fontSize: "0.65rem",
-          lineHeight: 1.15,
-          color: "#C457D0",
-          textShadow: "0 0 12px rgba(196, 87, 208, 0.5)",
-          margin: 0,
-          textAlign: "center",
-          animation: "lobster-dance 1.6s ease-in-out infinite",
-          whiteSpace: "pre",
-        }}
-      >
-        {lobster}
-      </pre>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <pre
+          style={{
+            fontFamily: "monospace",
+            fontSize: "0.55rem",
+            lineHeight: 1.1,
+            color: "#C457D0",
+            textShadow: "0 0 12px rgba(196, 87, 208, 0.5)",
+            margin: 0,
+            textAlign: "center",
+            whiteSpace: "pre",
+            animation: "claw-wave 0.8s ease-in-out infinite",
+            transformOrigin: "center bottom",
+          }}
+        >
+          {claws}
+        </pre>
+        <pre
+          style={{
+            fontFamily: "monospace",
+            fontSize: "0.55rem",
+            lineHeight: 1.1,
+            color: "#C457D0",
+            textShadow: "0 0 12px rgba(196, 87, 208, 0.5)",
+            margin: 0,
+            textAlign: "center",
+            whiteSpace: "pre",
+          }}
+        >
+          {body}
+        </pre>
+      </div>
       <span
         style={{
           fontSize: "0.75rem",
