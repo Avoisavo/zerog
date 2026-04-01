@@ -582,7 +582,7 @@ export default function Claw() {
           alignItems: "stretch",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: "0 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, paddingLeft: 16, paddingRight: 12 }}>
           <pre
             style={{
               fontFamily: "monospace",
