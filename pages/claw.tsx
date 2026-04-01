@@ -408,6 +408,7 @@ const LOBSTER_LEFT_OPEN = `                                               @@@@@@
                  @@@@##@@@
                    @@##@@@
                      @@@@@
+<<<<<<< HEAD
                      =====`;
 
 const LOBSTER_RIGHT = `                                            %*=+++===%
