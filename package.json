@@ -11,8 +11,6 @@
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "^1.2.1",
     "@0glabs/0g-serving-broker": "^0.7.4",
-    "@metamask/sdk": "^0.34.0",
-    "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.96.1",
     "ethers": "^6.16.0",
     "next": "16.2.2",

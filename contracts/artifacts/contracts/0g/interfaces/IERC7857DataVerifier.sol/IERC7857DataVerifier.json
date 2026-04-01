@@ -1,0 +1,136 @@
+{
+  "_format": "hh3-artifact-1",
+  "contractName": "IERC7857DataVerifier",
+  "sourceName": "contracts/0g/interfaces/IERC7857DataVerifier.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "components": [
+                {
+                  "internalType": "bytes32",
+                  "name": "dataHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "targetPubkey",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "nonce",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "proof",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct AccessProof",
+              "name": "accessProof",
+              "type": "tuple"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "enum OracleType",
+                  "name": "oracleType",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "dataHash",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "sealedKey",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "targetPubkey",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "nonce",
+                  "type": "bytes"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "proof",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct OwnershipProof",
+              "name": "ownershipProof",
+              "type": "tuple"
+            }
+          ],
+          "internalType": "struct TransferValidityProof[]",
+          "name": "proofs",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "verifyTransferValidity",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes32",
+              "name": "dataHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes",
+              "name": "sealedKey",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "targetPubkey",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "wantedKey",
+              "type": "bytes"
+            },
+            {
+              "internalType": "address",
+              "name": "accessAssistant",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes",
+              "name": "accessProofNonce",
+              "type": "bytes"
+            },
+            {
+              "internalType": "bytes",
+              "name": "ownershipProofNonce",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct TransferValidityProofOutput[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/0g/interfaces/IERC7857DataVerifier.sol",
+  "buildInfoId": "solc-0_8_28-8c6c98b59774d7169c36c4b626d1efb8a449f965"
+}

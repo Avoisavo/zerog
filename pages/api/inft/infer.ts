@@ -11,9 +11,9 @@ const ZG_RPC = "https://evmrpc-testnet.0g.ai";
 const ZG_INDEXER = "https://indexer-storage-testnet-turbo.0g.ai";
 
 const zgTestnet = {
-  id: 16602,
-  name: "0G-Galileo-Testnet",
-  nativeCurrency: { name: "0G", symbol: "0G", decimals: 18 },
+  id: 16602 as const,
+  name: "0G-Galileo-Testnet" as const,
+  nativeCurrency: { name: "0G" as const, symbol: "0G" as const, decimals: 18 as const },
   rpcUrls: { default: { http: [ZG_RPC] } },
 } as const;
 
@@ -25,14 +25,12 @@ const viemClient = createPublicClient({
 // Provider endpoint mapping
 const PROVIDER_ENDPOINTS: Record<string, string> = {
   openai: "https://api.openai.com/v1/chat/completions",
-  anthropic: "https://api.anthropic.com/v1/messages",
   groq: "https://api.groq.com/openai/v1/chat/completions",
   deepseek: "https://api.deepseek.com/v1/chat/completions",
 };
 
 const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4o-mini",
-  anthropic: "claude-sonnet-4-20250514",
   groq: "llama-3.3-70b-versatile",
   deepseek: "deepseek-chat",
 };
@@ -76,37 +74,6 @@ async function fetchConfigFromStorage(
 }
 
 /**
- * Call Anthropic Messages API
- */
-async function callAnthropic(
-  apiKey: string,
-  model: string,
-  systemPrompt: string,
-  message: string
-): Promise<string> {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 500,
-      system: systemPrompt,
-      messages: [{ role: "user", content: message }],
-    }),
-  });
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Anthropic error: ${errText}`);
-  }
-  const data = await resp.json();
-  return data.content?.[0]?.text || "No response";
-}
-
-/**
  * Call OpenAI-compatible API (OpenAI, Groq, DeepSeek)
  */
 async function callOpenAICompatible(
@@ -114,7 +81,8 @@ async function callOpenAICompatible(
   apiKey: string,
   model: string,
   systemPrompt: string,
-  message: string
+  message: string,
+  maxTokens = 500
 ): Promise<string> {
   const resp = await fetch(endpoint, {
     method: "POST",
@@ -128,7 +96,7 @@ async function callOpenAICompatible(
         { role: "system", content: systemPrompt },
         { role: "user", content: message },
       ],
-      max_tokens: 500,
+      max_tokens: maxTokens,
       temperature: 0.7,
     }),
   });
@@ -148,7 +116,7 @@ export default async function handler(
     return res.status(405).json({ error: "POST only" });
   }
 
-  const { tokenId, message, userAddress } = req.body;
+  const { tokenId, message, userAddress, maxTokens } = req.body;
 
   if (!tokenId || !message || !userAddress) {
     return res
@@ -226,6 +194,7 @@ export default async function handler(
       const provider = agentConfig.modelProvider.toLowerCase();
       const systemPrompt = agentConfig.systemPrompt || `You are ${p.botId}.`;
       const model = PROVIDER_DEFAULT_MODELS[provider] || "gpt-4o-mini";
+      const tokens = maxTokens || 500;
 
       // Decrypt the API key (encrypted with AES-256-GCM on upload)
       let realApiKey: string;
@@ -241,26 +210,16 @@ export default async function handler(
         });
       }
 
-      let reply: string;
-
-      if (provider === "anthropic") {
-        reply = await callAnthropic(
-          realApiKey,
-          model,
-          systemPrompt,
-          message
-        );
-      } else {
-        const endpoint =
-          PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.openai;
-        reply = await callOpenAICompatible(
-          endpoint,
-          realApiKey,
-          model,
-          systemPrompt,
-          message
-        );
-      }
+      const endpoint =
+        PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.openai;
+      const reply = await callOpenAICompatible(
+        endpoint,
+        realApiKey,
+        model,
+        systemPrompt,
+        message,
+        tokens
+      );
 
       return res.status(200).json({
         success: true,
@@ -272,7 +231,38 @@ export default async function handler(
       });
     }
 
-    // 5. No stored config/key — simulated response from on-chain profile
+    // 5. Fallback: use server-side AI key from env
+    const fallbackKey = process.env.AI_INFERENCE_KEY;
+    if (fallbackKey) {
+      const systemPrompt =
+        agentConfig?.systemPrompt ||
+        `You are ${p.botId}, a SPARK agent specializing in ${p.domainTags}. You offer ${p.serviceOfferings}. Keep responses concise and helpful.`;
+      const provider = agentConfig?.modelProvider?.toLowerCase() || "openai";
+      const model = PROVIDER_DEFAULT_MODELS[provider] || "gpt-4o-mini";
+      const tokens = maxTokens || 500;
+
+      const endpoint =
+        PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.openai;
+      const reply = await callOpenAICompatible(
+        endpoint,
+        fallbackKey,
+        model,
+        systemPrompt,
+        message,
+        tokens
+      );
+
+      return res.status(200).json({
+        success: true,
+        tokenId,
+        agent: p.botId,
+        response: reply,
+        source: "fallback",
+        configOnStorage: !!agentConfig,
+      });
+    }
+
+    // 6. No stored config and no fallback key — simulated response
     return res.status(200).json({
       success: true,
       tokenId,
@@ -281,7 +271,7 @@ export default async function handler(
         `[${p.botId}] I'm a SPARK agent specializing in ${p.domainTags}. ` +
         `I offer ${p.serviceOfferings}. ` +
         `My config ${agentConfig ? "is on 0G Storage but missing API key" : "is not yet on 0G Storage"}. ` +
-        `Re-mint with an API key to enable live inference. Your message: "${message}"`,
+        `Set AI_INFERENCE_KEY in .env or re-mint with an API key to enable live inference.`,
       simulated: true,
       configOnStorage: !!agentConfig,
     });

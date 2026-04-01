@@ -1,5 +1,6 @@
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { createConfig, http } from "wagmi";
 import { defineChain } from "viem";
+import { injected } from "wagmi/connectors";
 
 export const zgTestnet = defineChain({
   id: 16602,
@@ -23,10 +24,11 @@ export const zgTestnet = defineChain({
   testnet: true,
 });
 
-export const wagmiConfig = getDefaultConfig({
-  appName: "ZeroG",
-  projectId:
-    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "YOUR_PROJECT_ID",
+export const wagmiConfig = createConfig({
   chains: [zgTestnet],
+  connectors: [injected()],
+  transports: {
+    [zgTestnet.id]: http(),
+  },
   ssr: true,
 });

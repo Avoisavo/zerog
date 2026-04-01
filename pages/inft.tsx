@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useState, useRef, useEffect } from "react";
+import { ConnectWallet } from "@/components/ConnectWallet";
 import {
   useAccount,
-  useReadContract,
   useWriteContract,
-  useWaitForTransactionReceipt,
   usePublicClient,
 } from "wagmi";
 import { keccak256, toBytes } from "viem";
@@ -17,45 +15,26 @@ interface ResultData {
 
 export default function INFTPage() {
   const { address, isConnected } = useAccount();
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
 
   // ── Mint state ─────────────────────────────────────────────────
-  const [botId, setBotId] = useState("spark-bot-001");
-  const [domainTags, setDomainTags] = useState("defi,stripe,webhooks");
-  const [serviceOfferings, setServiceOfferings] = useState(
-    "scraping,analysis"
-  );
+  const [botId, setBotId] = useState("agent-001");
+  const [domainTags, setDomainTags] = useState("defi,analytics");
+  const [serviceOfferings, setServiceOfferings] = useState("scraping,analysis");
   const [systemPrompt, setSystemPrompt] = useState(
-    "You are a helpful AI agent specializing in DeFi analytics and webhook automation. You provide concise, actionable insights."
+    "You are a helpful AI agent specializing in DeFi analytics. You provide concise, actionable insights."
   );
   const [modelProvider, setModelProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
   const [mintResult, setMintResult] = useState<ResultData | null>(null);
   const [mintLoading, setMintLoading] = useState(false);
 
-  // ── View state ─────────────────────────────────────────────────
-  const [viewTokenId, setViewTokenId] = useState("1");
-  const [profileResult, setProfileResult] = useState<ResultData | null>(null);
-
-  // ── Update state ───────────────────────────────────────────────
-  const [updateTokenId, setUpdateTokenId] = useState("1");
-  const [newDomainTags, setNewDomainTags] = useState("");
-  const [newServiceOfferings, setNewServiceOfferings] = useState("");
-  const [updateResult, setUpdateResult] = useState<ResultData | null>(null);
-
-  // ── Contribution state ─────────────────────────────────────────
-  const [contribTokenId, setContribTokenId] = useState("1");
-  const [contribResult, setContribResult] = useState<ResultData | null>(null);
-
-  // ── Authorize state ────────────────────────────────────────────
-  const [authTokenId, setAuthTokenId] = useState("1");
-  const [authExecutor, setAuthExecutor] = useState("");
-  const [authResult, setAuthResult] = useState<ResultData | null>(null);
-
   // ── My iNFTs state ────────────────────────────────────────────
   const [myTokens, setMyTokens] = useState<ResultData | null>(null);
   const [myTokensLoading, setMyTokensLoading] = useState(false);
 
-  // ── Chat / Inference state ────────────────────────────────────
+  // ── Chat state ────────────────────────────────────────────────
   const [chatTokenId, setChatTokenId] = useState("1");
   const [chatInput, setChatInput] = useState("");
   const [chatHistory, setChatHistory] = useState<
@@ -63,12 +42,26 @@ export default function INFTPage() {
   >([]);
   const [chatLoading, setChatLoading] = useState(false);
 
-  // ── Stats state ────────────────────────────────────────────────
-  const [statsResult, setStatsResult] = useState<ResultData | null>(null);
+  // ── View profile state ────────────────────────────────────────
+  const [viewTokenId, setViewTokenId] = useState("1");
+  const [profileResult, setProfileResult] = useState<ResultData | null>(null);
 
-  // ── wagmi hooks ───────────────────────────────────────────────
-  const { writeContractAsync } = useWriteContract();
-  const publicClient = usePublicClient();
+  // ── Cron state ────────────────────────────────────────────────
+  const [cronTokenId, setCronTokenId] = useState("1");
+  const [cronInterval, setCronInterval] = useState("5");
+  const [cronPrompt, setCronPrompt] = useState("Give me a realistic current ETH/USD price with 2 decimal places. Vary it slightly each time like a live ticker. Just the price and 1-word direction (up/down).");
+  const [cronResult, setCronResult] = useState<ResultData | null>(null);
+  const [cronRunning, setCronRunning] = useState(false);
+  const [cronLog, setCronLog] = useState<{ time: string; text: string }[]>([]);
+  const cronTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cronStoppedRef = useRef(false);
+  const cronLogEndRef = useRef<HTMLDivElement>(null);
+
+  // ── x402 state ────────────────────────────────────────────────
+  const [x402TokenId, setX402TokenId] = useState("1");
+  const [x402Wallet, setX402Wallet] = useState("");
+  const [x402Endpoints, setX402Endpoints] = useState("https://api.example.com/prices");
+  const [x402Result, setX402Result] = useState<ResultData | null>(null);
 
   // ══════════════════════════════════════════════════════════════
   //  HANDLERS
@@ -79,23 +72,14 @@ export default function INFTPage() {
     setMintResult(null);
     setMintLoading(true);
     try {
-      // Step 1: Upload agent config to 0G Storage
-      setMintResult({
-        success: true,
-        message: "Step 1/2: Uploading agent config to 0G Storage...",
-      });
+      setMintResult({ success: true, message: "Step 1/2: Uploading config to 0G Storage..." });
 
       const uploadRes = await fetch("/api/inft/upload-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          botId,
-          domainTags,
-          serviceOfferings,
-          systemPrompt,
-          modelProvider,
-          apiKey,
-          persona: botId,
+          botId, domainTags, serviceOfferings, systemPrompt,
+          modelProvider, apiKey, persona: botId,
         }),
       });
 
@@ -106,194 +90,28 @@ export default function INFTPage() {
         const uploadData = await uploadRes.json();
         dataDescription = uploadData.dataDescription;
         dataHash = uploadData.dataHash as `0x${string}`;
-        setMintResult({
-          success: true,
-          message: `Step 1/2: Config uploaded to 0G Storage! Root: ${uploadData.rootHash?.slice(0, 16)}...`,
-        });
+        setMintResult({ success: true, message: `Step 1/2: Config uploaded! Root: ${uploadData.rootHash?.slice(0, 16)}...` });
       } else {
-        // Storage upload failed — fall back to local hash
-        const profileJson = JSON.stringify({
-          botId,
-          domainTags,
-          serviceOfferings,
-          systemPrompt,
-        });
+        const profileJson = JSON.stringify({ botId, domainTags, serviceOfferings, systemPrompt });
         dataHash = keccak256(toBytes(profileJson));
         dataDescription = `spark-agent://${botId}`;
-        setMintResult({
-          success: true,
-          message:
-            "Step 1/2: 0G Storage unavailable, using local hash fallback...",
-        });
+        setMintResult({ success: true, message: "Step 1/2: Storage unavailable, using local hash..." });
       }
 
-      // Step 2: Mint on-chain with IntelligentData referencing 0G Storage
-      setMintResult({
-        success: true,
-        message: "Step 2/2: Minting iNFT on 0G Chain...",
-      });
+      setMintResult({ success: true, message: "Step 2/2: Minting iNFT on 0G Chain..." });
 
       const hash = await writeContractAsync({
         address: SPARKINFT_ADDRESS,
         abi: SPARKINFT_ABI,
         functionName: "mintAgent",
-        args: [
-          address,
-          botId,
-          domainTags,
-          serviceOfferings,
-          [{ dataDescription, dataHash }],
-        ],
+        args: [address, botId, domainTags, serviceOfferings, [{ dataDescription, dataHash }]],
       });
 
-      setMintResult({
-        success: true,
-        txHash: hash,
-        message: "iNFT minted! Agent config stored on 0G Storage, hash on-chain.",
-        dataDescription,
-      });
+      setMintResult({ success: true, txHash: hash, message: "iNFT minted!", dataDescription });
     } catch (err: unknown) {
-      setMintResult({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      setMintResult({ success: false, error: err instanceof Error ? err.message : String(err) });
     } finally {
       setMintLoading(false);
-    }
-  }
-
-  async function handleViewProfile() {
-    if (!publicClient) return;
-    setProfileResult(null);
-    try {
-      const tokenId = BigInt(viewTokenId);
-
-      // Read on-chain via wagmi public client
-      const [profile, owner, tokenURI] = await Promise.all([
-        publicClient.readContract({
-          address: SPARKINFT_ADDRESS,
-          abi: SPARKINFT_ABI,
-          functionName: "getAgentProfile",
-          args: [tokenId],
-        }),
-        publicClient.readContract({
-          address: SPARKINFT_ADDRESS,
-          abi: SPARKINFT_ABI,
-          functionName: "ownerOf",
-          args: [tokenId],
-        }),
-        publicClient.readContract({
-          address: SPARKINFT_ADDRESS,
-          abi: SPARKINFT_ABI,
-          functionName: "tokenURI",
-          args: [tokenId],
-        }).catch(() => ""),
-      ]);
-
-      const p = profile as {
-        botId: string;
-        domainTags: string;
-        serviceOfferings: string;
-        reputationScore: bigint;
-        contributionCount: bigint;
-        createdAt: bigint;
-        updatedAt: bigint;
-      };
-
-      setProfileResult({
-        success: true,
-        tokenId: viewTokenId,
-        owner: owner as string,
-        tokenURI: tokenURI as string,
-        botId: p.botId,
-        domainTags: p.domainTags,
-        serviceOfferings: p.serviceOfferings,
-        reputationScore: Number(p.reputationScore),
-        contributionCount: Number(p.contributionCount),
-        createdAt: new Date(Number(p.createdAt) * 1000).toISOString(),
-        updatedAt: new Date(Number(p.updatedAt) * 1000).toISOString(),
-      });
-    } catch (err: unknown) {
-      setProfileResult({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  async function handleUpdateProfile() {
-    setUpdateResult(null);
-    try {
-      const hash = await writeContractAsync({
-        address: SPARKINFT_ADDRESS,
-        abi: SPARKINFT_ABI,
-        functionName: "updateProfile",
-        args: [BigInt(updateTokenId), newDomainTags, newServiceOfferings],
-      });
-
-      setUpdateResult({
-        success: true,
-        txHash: hash,
-        message: "Profile update transaction sent!",
-      });
-    } catch (err: unknown) {
-      setUpdateResult({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  async function handleRecordContribution() {
-    setContribResult(null);
-    try {
-      const hash = await writeContractAsync({
-        address: SPARKINFT_ADDRESS,
-        abi: SPARKINFT_ABI,
-        functionName: "recordContribution",
-        args: [BigInt(contribTokenId)],
-      });
-
-      setContribResult({
-        success: true,
-        txHash: hash,
-        message: "Contribution recorded!",
-      });
-    } catch (err: unknown) {
-      setContribResult({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  async function handleAuthorizeUsage() {
-    if (!authExecutor) {
-      setAuthResult({
-        success: false,
-        error: "Enter an executor address",
-      });
-      return;
-    }
-    setAuthResult(null);
-    try {
-      const hash = await writeContractAsync({
-        address: SPARKINFT_ADDRESS,
-        abi: SPARKINFT_ABI,
-        functionName: "authorizeUsage",
-        args: [BigInt(authTokenId), authExecutor as `0x${string}`],
-      });
-
-      setAuthResult({
-        success: true,
-        txHash: hash,
-        message: "Usage authorized!",
-      });
-    } catch (err: unknown) {
-      setAuthResult({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
     }
   }
 
@@ -302,61 +120,77 @@ export default function INFTPage() {
     setMyTokensLoading(true);
     setMyTokens(null);
     try {
-      const [balance, total] = await Promise.all([
-        publicClient.readContract({
-          address: SPARKINFT_ADDRESS,
-          abi: SPARKINFT_ABI,
-          functionName: "balanceOf",
-          args: [address],
-        }),
-        publicClient.readContract({
-          address: SPARKINFT_ADDRESS,
-          abi: SPARKINFT_ABI,
-          functionName: "totalMinted",
-        }),
-      ]);
-
-      const bal = Number(balance as bigint);
+      const total = await publicClient.readContract({
+        address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+        functionName: "totalMinted",
+      });
       const tot = Number(total as bigint);
+      const ownedTokens: { tokenId: number; botId: string; domainTags: string; cronEnabled: boolean }[] = [];
 
-      // Find which token IDs belong to this wallet
-      const ownedTokens: { tokenId: number; botId: string; domainTags: string }[] = [];
       for (let i = 1; i <= tot; i++) {
         try {
           const owner = await publicClient.readContract({
-            address: SPARKINFT_ADDRESS,
-            abi: SPARKINFT_ABI,
-            functionName: "ownerOf",
-            args: [BigInt(i)],
+            address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+            functionName: "ownerOf", args: [BigInt(i)],
           });
           if ((owner as string).toLowerCase() === address.toLowerCase()) {
             const profile = await publicClient.readContract({
-              address: SPARKINFT_ADDRESS,
-              abi: SPARKINFT_ABI,
-              functionName: "getAgentProfile",
-              args: [BigInt(i)],
+              address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+              functionName: "getAgentProfile", args: [BigInt(i)],
             });
-            const p = profile as { botId: string; domainTags: string };
-            ownedTokens.push({ tokenId: i, botId: p.botId, domainTags: p.domainTags });
+            const p = profile as { botId: string; domainTags: string; cronEnabled: boolean };
+            ownedTokens.push({ tokenId: i, botId: p.botId, domainTags: p.domainTags, cronEnabled: p.cronEnabled });
           }
-        } catch {
-          // token may not exist (burned), skip
-        }
+        } catch { /* skip */ }
       }
 
-      setMyTokens({
-        success: true,
-        balance: bal,
-        totalMintedOnContract: tot,
-        tokens: ownedTokens,
-      });
+      setMyTokens({ success: true, count: ownedTokens.length, tokens: ownedTokens });
     } catch (err: unknown) {
-      setMyTokens({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      setMyTokens({ success: false, error: err instanceof Error ? err.message : String(err) });
     } finally {
       setMyTokensLoading(false);
+    }
+  }
+
+  async function handleViewProfile() {
+    if (!publicClient) return;
+    setProfileResult(null);
+    try {
+      const tokenId = BigInt(viewTokenId);
+      const [profile, owner] = await Promise.all([
+        publicClient.readContract({
+          address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+          functionName: "getAgentProfile", args: [tokenId],
+        }),
+        publicClient.readContract({
+          address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+          functionName: "ownerOf", args: [tokenId],
+        }),
+      ]);
+
+      const p = profile as {
+        botId: string; domainTags: string; serviceOfferings: string;
+        createdAt: bigint; updatedAt: bigint;
+        cronSchedule: string; cronPrompt: string; cronEnabled: boolean;
+        executor: string; lastExecution: bigint; executionCount: bigint;
+        x402Wallet: string;
+      };
+
+      setProfileResult({
+        success: true,
+        tokenId: viewTokenId,
+        owner: owner as string,
+        botId: p.botId,
+        domainTags: p.domainTags,
+        serviceOfferings: p.serviceOfferings,
+        createdAt: new Date(Number(p.createdAt) * 1000).toISOString(),
+        cronSchedule: p.cronSchedule || "(none)",
+        cronEnabled: p.cronEnabled,
+        executionCount: Number(p.executionCount),
+        x402Wallet: p.x402Wallet,
+      });
+    } catch (err: unknown) {
+      setProfileResult({ success: false, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
@@ -370,61 +204,146 @@ export default function INFTPage() {
       const res = await fetch("/api/inft/infer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tokenId: Number(chatTokenId),
-          message: userMsg,
-          userAddress: address,
-        }),
+        body: JSON.stringify({ tokenId: Number(chatTokenId), message: userMsg, userAddress: address }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setChatHistory((prev) => [
-          ...prev,
-          { role: "agent", text: `Error: ${data.error}` },
-        ]);
-      } else {
-        setChatHistory((prev) => [
-          ...prev,
-          {
-            role: "agent",
-            text: data.response + (data.simulated ? " [simulated]" : ""),
-          },
-        ]);
-      }
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "agent", text: res.ok ? data.response + (data.simulated ? " [simulated]" : "") : `Error: ${data.error}` },
+      ]);
     } catch (err: unknown) {
       setChatHistory((prev) => [
         ...prev,
-        {
-          role: "agent",
-          text: `Error: ${err instanceof Error ? err.message : String(err)}`,
-        },
+        { role: "agent", text: `Error: ${err instanceof Error ? err.message : String(err)}` },
       ]);
     } finally {
       setChatLoading(false);
     }
   }
 
-  async function handleStats() {
-    if (!publicClient) return;
-    setStatsResult(null);
+  async function handleSetCron() {
+    setCronResult(null);
     try {
-      const totalMinted = await publicClient.readContract({
-        address: SPARKINFT_ADDRESS,
-        abi: SPARKINFT_ABI,
-        functionName: "totalMinted",
+      const hash = await writeContractAsync({
+        address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+        functionName: "setCronConfig",
+        args: [BigInt(cronTokenId), `${cronInterval}s`, cronPrompt],
       });
-
-      setStatsResult({
-        success: true,
-        totalMinted: Number(totalMinted as bigint),
-        contract: SPARKINFT_ADDRESS,
-        explorer: `https://chainscan-galileo.0g.ai/address/${SPARKINFT_ADDRESS}`,
-      });
+      setCronResult({ success: true, txHash: hash, message: "Cron config saved on-chain!" });
     } catch (err: unknown) {
-      setStatsResult({
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
+      setCronResult({ success: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  async function handleToggleCron(enabled: boolean) {
+    setCronResult(null);
+    try {
+      const hash = await writeContractAsync({
+        address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+        functionName: "toggleCron",
+        args: [BigInt(cronTokenId), enabled],
       });
+      setCronResult({ success: true, txHash: hash, message: `Cron ${enabled ? "enabled" : "disabled"}!` });
+    } catch (err: unknown) {
+      setCronResult({ success: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  // Auto-scroll cron log
+  useEffect(() => {
+    cronLogEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [cronLog]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cronStoppedRef.current = true;
+      if (cronTimerRef.current) clearTimeout(cronTimerRef.current);
+    };
+  }, []);
+
+  function handleStartCron() {
+    if (!address || cronRunning) return;
+    const intervalSec = Math.max(1, Number(cronInterval));
+    const tokenId = Number(cronTokenId);
+    const prompt = cronPrompt;
+
+    setCronRunning(true);
+    setCronLog([]);
+    cronStoppedRef.current = false;
+    let tickCount = 0;
+
+    const tick = async () => {
+      if (cronStoppedRef.current) return;
+      tickCount++;
+      const now = new Date().toLocaleTimeString();
+      setCronLog((prev) => [...prev, { time: now, text: "⏳ Calling LLM..." }]);
+      try {
+        const res = await fetch("/api/inft/infer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tokenId, message: prompt + `\n\n[CRON tick #${tickCount} at ${new Date().toISOString()}. Reply in 1 sentence MAX. Just the number and direction.]`, userAddress: address, maxTokens: 60 }),
+        });
+        const data = await res.json();
+        const reply = res.ok
+          ? data.response + (data.simulated ? " [simulated]" : "")
+          : `Error: ${data.error}`;
+        setCronLog((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { time: now, text: reply };
+          return updated;
+        });
+      } catch (err: unknown) {
+        setCronLog((prev) => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            time: now,
+            text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+          };
+          return updated;
+        });
+      }
+      // Wait intervalSec AFTER response comes back, then next tick
+      if (!cronStoppedRef.current) {
+        cronTimerRef.current = setTimeout(tick, intervalSec * 1000);
+      }
+    };
+
+    tick();
+  }
+
+  function handleStopCron() {
+    cronStoppedRef.current = true;
+    if (cronTimerRef.current) {
+      clearTimeout(cronTimerRef.current);
+      cronTimerRef.current = null;
+    }
+    setCronRunning(false);
+  }
+
+  async function handleSetX402() {
+    setX402Result(null);
+    try {
+      const walletAddr = x402Wallet || "0x0000000000000000000000000000000000000000";
+      const endpoints = x402Endpoints.split(",").map((s) => s.trim()).filter(Boolean);
+
+      // Set wallet
+      if (x402Wallet) {
+        await writeContractAsync({
+          address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+          functionName: "setX402Wallet",
+          args: [BigInt(x402TokenId), walletAddr as `0x${string}`],
+        });
+      }
+      // Set endpoints
+      const hash = await writeContractAsync({
+        address: SPARKINFT_ADDRESS, abi: SPARKINFT_ABI,
+        functionName: "setX402Endpoints",
+        args: [BigInt(x402TokenId), endpoints],
+      });
+      setX402Result({ success: true, txHash: hash, message: "x402 config saved on-chain!", endpoints });
+    } catch (err: unknown) {
+      setX402Result({ success: false, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
@@ -433,32 +352,21 @@ export default function INFTPage() {
   // ══════════════════════════════════════════════════════════════
 
   return (
-    <div
-      style={{
-        maxWidth: 720,
-        margin: "40px auto",
-        fontFamily: "monospace",
-        padding: "0 20px",
-      }}
-    >
-      <h1>0G iNFT (ERC-7857) Demo</h1>
+    <div style={{ maxWidth: 720, margin: "40px auto", fontFamily: "monospace", padding: "0 20px" }}>
+      <h1>0GClaw — Autonomous Agent iNFTs</h1>
       <p style={{ color: "#888" }}>
-        SPARK Agent Identity on 0G Galileo Testnet — Chain ID 16602
+        ERC-7857 INFT + Cron + x402 on 0G Galileo Testnet
       </p>
 
-      {/* Connect Wallet */}
       <section style={{ margin: "24px 0" }}>
-        <ConnectButton />
+        <ConnectWallet />
       </section>
 
       {!isConnected && (
-        <p style={{ color: "#f59e0b", marginTop: 12 }}>
-          Connect your wallet to 0G Galileo Testnet to interact with the
-          contract.
-        </p>
+        <p style={{ color: "#f59e0b" }}>Connect your wallet to 0G Galileo Testnet.</p>
       )}
 
-      {/* My iNFTs */}
+      {/* ── My iNFTs ─────────────────────────────────────────── */}
       {isConnected && (
         <section style={{ margin: "24px 0", padding: 16, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
           <h2 style={{ marginTop: 0 }}>My iNFTs</h2>
@@ -467,17 +375,15 @@ export default function INFTPage() {
           </button>
           {myTokens && myTokens.success && (
             <div style={{ marginTop: 12 }}>
-              <p><strong>You own {myTokens.balance as number} iNFT(s)</strong></p>
-              {(myTokens.tokens as { tokenId: number; botId: string; domainTags: string }[]).map((t) => (
+              <p><strong>You own {myTokens.count as number} iNFT(s)</strong></p>
+              {(myTokens.tokens as { tokenId: number; botId: string; domainTags: string; cronEnabled: boolean }[]).map((t) => (
                 <div key={t.tokenId} style={{ padding: 8, margin: "6px 0", background: "#fff", border: "1px solid #e2e8f0" }}>
-                  <strong>Token #{t.tokenId}</strong> — {t.botId}
-                  <br />
-                  <span style={{ color: "#666", fontSize: 12 }}>Tags: {t.domainTags}</span>
+                  <strong>#{t.tokenId}</strong> — {t.botId}
+                  <span style={{ color: "#666", fontSize: 12, marginLeft: 8 }}>Tags: {t.domainTags}</span>
+                  {t.cronEnabled && <span style={{ color: "#22c55e", fontSize: 12, marginLeft: 8 }}>CRON ON</span>}
                 </div>
               ))}
-              {(myTokens.balance as number) === 0 && (
-                <p style={{ color: "#888" }}>No iNFTs yet. Mint one below!</p>
-              )}
+              {(myTokens.count as number) === 0 && <p style={{ color: "#888" }}>No iNFTs yet. Mint one below!</p>}
             </div>
           )}
           {myTokens && !myTokens.success && <ResultBlock data={myTokens} />}
@@ -486,353 +392,191 @@ export default function INFTPage() {
 
       <hr style={{ margin: "24px 0" }} />
 
-      {/* 1. Mint iNFT Agent */}
+      {/* ── Mint ─────────────────────────────────────────────── */}
       <section style={{ margin: "24px 0" }}>
-        <h2>1. Mint iNFT Agent</h2>
-        <p style={{ color: "#888", fontSize: 13 }}>
-          Register a SPARK bot as an ERC-7857 iNFT. Agent config is uploaded to
-          0G Storage, hash stored on-chain.
-        </p>
+        <h2>Mint Agent iNFT</h2>
         <div>
-          <label>
-            Bot ID:{" "}
-            <input
-              value={botId}
-              onChange={(e) => setBotId(e.target.value)}
-              style={{ width: 250, fontFamily: "monospace" }}
-            />
-          </label>
+          <label>Bot ID: <input value={botId} onChange={(e) => setBotId(e.target.value)} style={{ width: 250, fontFamily: "monospace" }} /></label>
         </div>
         <div style={{ marginTop: 8 }}>
-          <label>
-            Domain Tags:{" "}
-            <input
-              value={domainTags}
-              onChange={(e) => setDomainTags(e.target.value)}
-              style={{ width: 300, fontFamily: "monospace" }}
-            />
-          </label>
+          <label>Domain Tags: <input value={domainTags} onChange={(e) => setDomainTags(e.target.value)} style={{ width: 300, fontFamily: "monospace" }} /></label>
         </div>
         <div style={{ marginTop: 8 }}>
-          <label>
-            Service Offerings:{" "}
-            <input
-              value={serviceOfferings}
-              onChange={(e) => setServiceOfferings(e.target.value)}
-              style={{ width: 300, fontFamily: "monospace" }}
-            />
-          </label>
+          <label>Service Offerings: <input value={serviceOfferings} onChange={(e) => setServiceOfferings(e.target.value)} style={{ width: 300, fontFamily: "monospace" }} /></label>
         </div>
         <div style={{ marginTop: 8 }}>
-          <label>
-            System Prompt:{" "}
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              rows={3}
-              style={{ width: "100%", fontFamily: "monospace", fontSize: 12, marginTop: 4 }}
-            />
+          <label>System Prompt:
+            <textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} rows={3} style={{ width: "100%", fontFamily: "monospace", fontSize: 12, marginTop: 4 }} />
           </label>
         </div>
-        <div
-          style={{
-            marginTop: 12,
-            padding: 12,
-            background: "#fffbeb",
-            border: "2px solid #f59e0b",
-            borderRadius: 6,
-          }}
-        >
-          <p style={{ margin: "0 0 8px", fontWeight: "bold", fontSize: 13 }}>
-            AI Provider Configuration (stored on 0G Storage)
-          </p>
+        <div style={{ marginTop: 12, padding: 12, background: "#fffbeb", border: "2px solid #f59e0b", borderRadius: 6 }}>
+          <p style={{ margin: "0 0 8px", fontWeight: "bold", fontSize: 13 }}>AI Provider Config (stored on 0G Storage)</p>
           <div>
-            <label>
-              Model Provider:{" "}
-              <select
-                value={modelProvider}
-                onChange={(e) => setModelProvider(e.target.value)}
-                style={{ fontFamily: "monospace", padding: "4px 8px" }}
-              >
+            <label>Provider: {" "}
+              <select value={modelProvider} onChange={(e) => setModelProvider(e.target.value)} style={{ fontFamily: "monospace", padding: "4px 8px" }}>
                 <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
                 <option value="groq">Groq</option>
                 <option value="deepseek">DeepSeek</option>
               </select>
             </label>
           </div>
           <div style={{ marginTop: 8 }}>
-            <label>
-              API Key:{" "}
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-... (your own API key)"
-                style={{
-                  width: 400,
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  padding: "6px 8px",
-                  border: "1px solid #f59e0b",
-                }}
-              />
+            <label>API Key: {" "}
+              <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..."
+                style={{ width: 400, fontFamily: "monospace", fontSize: 12, padding: "6px 8px", border: "1px solid #f59e0b" }} />
             </label>
-            <p style={{ color: "#888", fontSize: 11, margin: "4px 0 0" }}>
-              Your key is uploaded to 0G Storage with your agent config. Only
-              the iNFT owner can use it for inference.
-            </p>
           </div>
         </div>
-        <button
-          onClick={handleMint}
-          disabled={!isConnected || mintLoading || !apiKey}
-          style={{ marginTop: 12 }}
-        >
+        <button onClick={handleMint} disabled={!isConnected || mintLoading || !apiKey} style={{ marginTop: 12 }}>
           {mintLoading ? "Minting..." : "Mint Agent iNFT"}
         </button>
-        <span style={{ fontSize: 11, color: "#888", marginLeft: 8 }}>
-          Uploads config + key to 0G Storage → mints iNFT on-chain
-        </span>
         {mintResult && <ResultBlock data={mintResult} />}
       </section>
 
       <hr style={{ margin: "24px 0" }} />
 
-      {/* 2. View Agent Profile */}
+      {/* ── View Profile ─────────────────────────────────────── */}
       <section style={{ margin: "24px 0" }}>
-        <h2>2. View Agent Profile</h2>
+        <h2>View Agent Profile</h2>
         <div>
-          <label>
-            Token ID:{" "}
-            <input
-              value={viewTokenId}
-              onChange={(e) => setViewTokenId(e.target.value)}
-              style={{ width: 100, fontFamily: "monospace" }}
-            />
-          </label>
+          <label>Token ID: <input value={viewTokenId} onChange={(e) => setViewTokenId(e.target.value)} style={{ width: 100, fontFamily: "monospace" }} /></label>
         </div>
-        <button onClick={handleViewProfile} style={{ marginTop: 8 }}>
-          View Profile
-        </button>
+        <button onClick={handleViewProfile} style={{ marginTop: 8 }}>View Profile</button>
         {profileResult && <ResultBlock data={profileResult} />}
       </section>
 
       <hr style={{ margin: "24px 0" }} />
 
-      {/* 3. Update Agent Profile */}
+      {/* ── Chat ─────────────────────────────────────────────── */}
       <section style={{ margin: "24px 0" }}>
-        <h2>3. Update Agent Profile</h2>
+        <h2>Chat with Agent iNFT</h2>
         <div>
-          <label>
-            Token ID:{" "}
-            <input
-              value={updateTokenId}
-              onChange={(e) => setUpdateTokenId(e.target.value)}
-              style={{ width: 100, fontFamily: "monospace" }}
-            />
-          </label>
+          <label>Token ID: <input value={chatTokenId} onChange={(e) => setChatTokenId(e.target.value)} style={{ width: 100, fontFamily: "monospace" }} /></label>
         </div>
-        <div style={{ marginTop: 8 }}>
-          <label>
-            New Domain Tags:{" "}
-            <input
-              value={newDomainTags}
-              onChange={(e) => setNewDomainTags(e.target.value)}
-              placeholder="defi,nft,trading"
-              style={{ width: 300, fontFamily: "monospace" }}
-            />
-          </label>
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <label>
-            New Service Offerings:{" "}
-            <input
-              value={newServiceOfferings}
-              onChange={(e) => setNewServiceOfferings(e.target.value)}
-              placeholder="analysis,monitoring"
-              style={{ width: 300, fontFamily: "monospace" }}
-            />
-          </label>
-        </div>
-        <button
-          onClick={handleUpdateProfile}
-          disabled={!isConnected}
-          style={{ marginTop: 8 }}
-        >
-          Update Profile
-        </button>
-        {updateResult && <ResultBlock data={updateResult} />}
-      </section>
-
-      <hr style={{ margin: "24px 0" }} />
-
-      {/* 4. Record Contribution */}
-      <section style={{ margin: "24px 0" }}>
-        <h2>4. Record Contribution</h2>
-        <p style={{ color: "#888", fontSize: 13 }}>
-          Increment the knowledge contribution count for an agent.
-        </p>
-        <div>
-          <label>
-            Token ID:{" "}
-            <input
-              value={contribTokenId}
-              onChange={(e) => setContribTokenId(e.target.value)}
-              style={{ width: 100, fontFamily: "monospace" }}
-            />
-          </label>
-        </div>
-        <button
-          onClick={handleRecordContribution}
-          disabled={!isConnected}
-          style={{ marginTop: 8 }}
-        >
-          Record Contribution
-        </button>
-        {contribResult && <ResultBlock data={contribResult} />}
-      </section>
-
-      <hr style={{ margin: "24px 0" }} />
-
-      {/* 5. Authorize Usage */}
-      <section style={{ margin: "24px 0" }}>
-        <h2>5. Authorize Usage (ERC-7857)</h2>
-        <p style={{ color: "#888", fontSize: 13 }}>
-          Grant another agent permission to use this iNFT&apos;s capabilities.
-        </p>
-        <div>
-          <label>
-            Token ID:{" "}
-            <input
-              value={authTokenId}
-              onChange={(e) => setAuthTokenId(e.target.value)}
-              style={{ width: 100, fontFamily: "monospace" }}
-            />
-          </label>
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <label>
-            Executor Address:{" "}
-            <input
-              value={authExecutor}
-              onChange={(e) => setAuthExecutor(e.target.value)}
-              placeholder="0x..."
-              style={{ width: 400, fontFamily: "monospace", fontSize: 11 }}
-            />
-          </label>
-        </div>
-        <button
-          onClick={handleAuthorizeUsage}
-          disabled={!isConnected}
-          style={{ marginTop: 8 }}
-        >
-          Authorize Usage
-        </button>
-        {authResult && <ResultBlock data={authResult} />}
-      </section>
-
-      <hr style={{ margin: "24px 0" }} />
-
-      {/* 6. Chat with Agent iNFT */}
-      <section style={{ margin: "24px 0" }}>
-        <h2>6. Chat with Agent iNFT</h2>
-        <p style={{ color: "#888", fontSize: 13 }}>
-          Talk to your iNFT agent. On-chain authorization is verified before
-          each inference.
-        </p>
-        <div>
-          <label>
-            Token ID:{" "}
-            <input
-              value={chatTokenId}
-              onChange={(e) => setChatTokenId(e.target.value)}
-              style={{ width: 100, fontFamily: "monospace" }}
-            />
-          </label>
-        </div>
-
-        {/* Chat history */}
-        <div
-          style={{
-            marginTop: 12,
-            border: "1px solid #e2e8f0",
-            background: "#f8fafc",
-            minHeight: 200,
-            maxHeight: 400,
-            overflowY: "auto",
-            padding: 12,
-          }}
-        >
-          {chatHistory.length === 0 && (
-            <p style={{ color: "#aaa", margin: 0 }}>
-              No messages yet. Send a message to your agent.
-            </p>
-          )}
+        <div style={{ marginTop: 12, border: "1px solid #e2e8f0", background: "#f8fafc", minHeight: 200, maxHeight: 400, overflowY: "auto", padding: 12 }}>
+          {chatHistory.length === 0 && <p style={{ color: "#aaa", margin: 0 }}>No messages yet.</p>}
           {chatHistory.map((msg, i) => (
-            <div
-              key={i}
-              style={{
-                margin: "8px 0",
-                textAlign: msg.role === "user" ? "right" : "left",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  maxWidth: "80%",
-                  background: msg.role === "user" ? "#3b82f6" : "#e2e8f0",
-                  color: msg.role === "user" ? "#fff" : "#1a1a1a",
-                  fontSize: 13,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {msg.text}
-              </span>
+            <div key={i} style={{ margin: "8px 0", textAlign: msg.role === "user" ? "right" : "left" }}>
+              <span style={{
+                display: "inline-block", padding: "8px 12px", borderRadius: 8, maxWidth: "80%",
+                background: msg.role === "user" ? "#3b82f6" : "#e2e8f0",
+                color: msg.role === "user" ? "#fff" : "#1a1a1a",
+                fontSize: 13, whiteSpace: "pre-wrap", wordBreak: "break-word",
+              }}>{msg.text}</span>
             </div>
           ))}
-          {chatLoading && (
-            <div style={{ margin: "8px 0", color: "#888", fontSize: 13 }}>
-              Agent is thinking...
-            </div>
-          )}
+          {chatLoading && <div style={{ margin: "8px 0", color: "#888", fontSize: 13 }}>Agent is thinking...</div>}
         </div>
-
-        {/* Input */}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <input
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
+          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !chatLoading && handleChat()}
             placeholder="Ask your agent something..."
             disabled={!isConnected || chatLoading}
-            style={{
-              flex: 1,
-              fontFamily: "monospace",
-              padding: "8px 12px",
-            }}
-          />
-          <button
-            onClick={handleChat}
-            disabled={!isConnected || chatLoading || !chatInput.trim()}
-          >
-            Send
-          </button>
+            style={{ flex: 1, fontFamily: "monospace", padding: "8px 12px" }} />
+          <button onClick={handleChat} disabled={!isConnected || chatLoading || !chatInput.trim()}>Send</button>
         </div>
       </section>
 
       <hr style={{ margin: "24px 0" }} />
 
-      {/* 7. Network Stats */}
+      {/* ── Cron Config ──────────────────────────────────────── */}
       <section style={{ margin: "24px 0" }}>
-        <h2>7. Network Stats</h2>
-        <button onClick={handleStats} style={{ marginTop: 8 }}>
-          View Contract on Explorer
-        </button>
-        {statsResult && <ResultBlock data={statsResult} />}
+        <h2>Cron — Give Your Agent Time</h2>
+        <p style={{ color: "#888", fontSize: 13 }}>Set a schedule for your agent to wake up and act autonomously.</p>
+        <div>
+          <label>Token ID: <input value={cronTokenId} onChange={(e) => setCronTokenId(e.target.value)} style={{ width: 100, fontFamily: "monospace" }} /></label>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <label>Every <input type="number" min="1" value={cronInterval} onChange={(e) => setCronInterval(e.target.value)} style={{ width: 70, fontFamily: "monospace", textAlign: "center" }} /> seconds</label>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>Cron Prompt:
+            <textarea value={cronPrompt} onChange={(e) => setCronPrompt(e.target.value)} rows={2}
+              style={{ width: "100%", fontFamily: "monospace", fontSize: 12, marginTop: 4 }}
+              placeholder="What should the agent do on each tick?" />
+          </label>
+        </div>
+        <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={handleSetCron} disabled={!isConnected}>Save Config On-Chain</button>
+          <button onClick={() => handleToggleCron(true)} disabled={!isConnected} style={{ background: "#22c55e", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 4, cursor: "pointer" }}>Enable On-Chain</button>
+          <button onClick={() => handleToggleCron(false)} disabled={!isConnected} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 14px", borderRadius: 4, cursor: "pointer" }}>Disable On-Chain</button>
+        </div>
+        {cronResult && <ResultBlock data={cronResult} />}
+
+        {/* ── Live Cron Executor ── */}
+        <div style={{ marginTop: 16, padding: 12, background: "#1a1a2e", borderRadius: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ color: "#e2e8f0", fontWeight: "bold", fontSize: 14 }}>
+              Live Executor {cronRunning && <span style={{ color: "#22c55e", marginLeft: 8, fontSize: 12 }}>● RUNNING</span>}
+              {!cronRunning && <span style={{ color: "#888", marginLeft: 8, fontSize: 12 }}>○ STOPPED</span>}
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              {!cronRunning ? (
+                <button onClick={handleStartCron} disabled={!isConnected || !cronPrompt.trim()}
+                  style={{ background: "#22c55e", color: "#fff", border: "none", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontWeight: "bold" }}>
+                  ▶ Start Cron
+                </button>
+              ) : (
+                <button onClick={handleStopCron}
+                  style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontWeight: "bold" }}>
+                  ■ Stop Cron
+                </button>
+              )}
+              {cronLog.length > 0 && !cronRunning && (
+                <button onClick={() => setCronLog([])}
+                  style={{ background: "#374151", color: "#9ca3af", border: "none", padding: "6px 12px", borderRadius: 4, cursor: "pointer", fontSize: 12 }}>
+                  Clear Log
+                </button>
+              )}
+            </div>
+          </div>
+          <div style={{ background: "#0d1117", borderRadius: 6, padding: 10, maxHeight: 300, overflowY: "auto", minHeight: 60 }}>
+            {cronLog.length === 0 && (
+              <p style={{ color: "#555", margin: 0, fontSize: 12 }}>
+                No executions yet. Hit Start Cron to run every {cronInterval}s.
+              </p>
+            )}
+            {cronLog.map((entry, i) => (
+              <div key={i} style={{ margin: "6px 0", fontSize: 12, borderBottom: "1px solid #1e293b", paddingBottom: 6 }}>
+                <span style={{ color: "#6366f1", marginRight: 8 }}>[{entry.time}]</span>
+                <span style={{ color: entry.text.startsWith("Error") ? "#ef4444" : "#e2e8f0", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {entry.text}
+                </span>
+              </div>
+            ))}
+            <div ref={cronLogEndRef} />
+          </div>
+        </div>
+      </section>
+
+      <hr style={{ margin: "24px 0" }} />
+
+      {/* ── x402 Config ──────────────────────────────────────── */}
+      <section style={{ margin: "24px 0" }}>
+        <h2>x402 — Give Your Agent Money</h2>
+        <p style={{ color: "#888", fontSize: 13 }}>Set a USDC wallet and paid API endpoints. Your agent auto-pays via HTTP 402.</p>
+        <div>
+          <label>Token ID: <input value={x402TokenId} onChange={(e) => setX402TokenId(e.target.value)} style={{ width: 100, fontFamily: "monospace" }} /></label>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>x402 Wallet (Base Sepolia): <input value={x402Wallet} onChange={(e) => setX402Wallet(e.target.value)} placeholder="0x..." style={{ width: 400, fontFamily: "monospace", fontSize: 11 }} /></label>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>Paid Endpoints (comma-separated):
+            <textarea value={x402Endpoints} onChange={(e) => setX402Endpoints(e.target.value)} rows={2}
+              style={{ width: "100%", fontFamily: "monospace", fontSize: 12, marginTop: 4 }}
+              placeholder="https://api.example.com/prices, https://api.example.com/news" />
+          </label>
+        </div>
+        <button onClick={handleSetX402} disabled={!isConnected} style={{ marginTop: 8 }}>Save x402 Config</button>
+        {x402Result && <ResultBlock data={x402Result} />}
+      </section>
+
+      <hr style={{ margin: "24px 0" }} />
+
+      {/* ── Contract Info ────────────────────────────────────── */}
+      <section style={{ margin: "24px 0", fontSize: 12, color: "#888" }}>
+        <p>Contract: <a href={`https://chainscan-galileo.0g.ai/address/${SPARKINFT_ADDRESS}`} target="_blank" rel="noreferrer">{SPARKINFT_ADDRESS}</a></p>
       </section>
     </div>
   );
@@ -840,16 +584,11 @@ export default function INFTPage() {
 
 function ResultBlock({ data }: { data: ResultData }) {
   return (
-    <pre
-      style={{
-        background: data.success ? "#f0fdf4" : "#fef2f2",
-        border: `1px solid ${data.success ? "#86efac" : "#fca5a5"}`,
-        padding: 12,
-        marginTop: 8,
-        overflow: "auto",
-        fontSize: 13,
-      }}
-    >
+    <pre style={{
+      background: data.success ? "#f0fdf4" : "#fef2f2",
+      border: `1px solid ${data.success ? "#86efac" : "#fca5a5"}`,
+      padding: 12, marginTop: 8, overflow: "auto", fontSize: 13,
+    }}>
       {JSON.stringify(data, null, 2)}
     </pre>
   );
