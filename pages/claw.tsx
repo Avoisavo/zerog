@@ -269,8 +269,6 @@ function InftModal({
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#B284BE", fontSize: "1.4rem", cursor: "pointer", lineHeight: 1, padding: 0 }}>x</button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={labelStyle}>Bot ID</label><input value={botId} onChange={(e) => setBotId(e.target.value)} placeholder="my-agent-001" style={inputStyle} /></div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={labelStyle}>Domain Tags</label><input value={domainTags} onChange={(e) => setDomainTags(e.target.value)} style={inputStyle} /></div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={labelStyle}>Services</label><input value={serviceOfferings} onChange={(e) => setServiceOfferings(e.target.value)} style={inputStyle} /></div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}><label style={labelStyle}>System Prompt</label><textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical" }} /></div>
         <div style={{ padding: 14, background: "rgba(196,87,208,0.08)", border: "1px solid rgba(196,87,208,0.2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
           <span style={{ ...labelStyle, fontSize: "0.75rem", color: "#C457D0" }}>AI Provider</span>
