@@ -1,0 +1,31 @@
+import { Header } from "@/components/Header";
+import { useAccount } from "wagmi";
+
+export default function TestPage() {
+  const { address, isConnected, chain } = useAccount();
+
+  return (
+    <div className="min-h-screen">
+      <Header />
+      <main className="p-6">
+        <h2 className="text-2xl font-bold mb-4">Wallet Connection Test</h2>
+        {isConnected ? (
+          <div className="space-y-2">
+            <p>
+              <span className="font-medium">Connected:</span> {address}
+            </p>
+            <p>
+              <span className="font-medium">Chain:</span> {chain?.name} (ID:{" "}
+              {chain?.id})
+            </p>
+          </div>
+        ) : (
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Click &quot;Connect Wallet&quot; above to connect MetaMask to 0G
+            Galileo testnet.
+          </p>
+        )}
+      </main>
+    </div>
+  );
+}
