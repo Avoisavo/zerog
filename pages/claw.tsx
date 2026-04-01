@@ -322,7 +322,51 @@ function InftModal({
 
 // ── ASCII Art ──────────────────────────────────────────────────
 
-const LOBSTER_LEFT = `                                               @@@@@@@@@@@
+const LOBSTER_LEFT_CLOSED = `                                                   @@@@@@@@@@@
+                                               :@@+++++++++++@@
+                                             %@%+++++++++******@@  =@@
+                                           ##+*+++++*+*+***%%%%@@  .--##
+                                           @@+++++++*******@@@@@@    .@@
+                                           @@+++++****@@@@@@@##@@    .@@
+                                           @@*******@@@@#######@@     @@
+                                           @@*****##@@#######@@       @@
+                                           @@***####@@#####@@      =@%  @@@@@@@@@
+                                         --%%#*#####@@#######    ---%#--##%%%%%#%--
+                                         @@**@@@@@@@@@@@@@%      @@-  @@         @@
+                                       @@**@@.                 @@  =@@
+                                @@     @@**@@.               @@  @@-
+                                @@       @@**@@+           @@  @@           @@@@@@@@@@@:
+                           .@@  @@         @@###@@      %@@@@@@           @@+++++@@@@**%@#
+                            @@  @@         @@###@@      %@@@@@@           @@+++=+@@@@**%@#
+                            @@    @@-    @@@@@@@@@@@@@@@@@@@@           @@++++*@@@@****%@#
+                       @@.  @@      =@@@@##***********##@@%           @@++++@@@@@****##@@#
+                       @@.    @@    =@@##**+++++******##@@%           @@@@@@@@%*#****##@@#
+                         %@%    @@@@%##****+++++******##@@%           @@##*********####@@#
+                         +#*##  @@%%#******+++++******##@@@##         @@##*********##%%*#+
+                           .@@  @@##******************##@@@@@         @@##*******####@@:
+                              @@##********************##@@@##@@       @@###########@@
+                              @@##******************####@@@@@**@@@@@@@**@@@@@@@@@@@
+                           .@@@@##****************######@@%  @@*******@@
+                         #@@####@@##************######@@.      @@@@@@@
+                         %@@####@@##************######@@.      @@@@@@%
+                       @@###****##@@%##******#######@@@@:
+                       @@###++****##%@@###########@@    %@%
+                       @@@@@@@##*****##@@######%@@@@      .@@@@@@
+                     @@##***##@@##**#####@@@@@@+    @@
+                   ####++*****##%@#######@@--=--##  --#######
+                   @@##++*****##@@#######@@    :@@    @@@@@@@
+          @@@@@@@@@@@@@*******##@@#####@@         @@
+          @@*****++****@@#######@@@@@@%             @@@@.
+            @@@@%******##@@@##@@
+              @@%##**####%@@@@
+              *#*##**####%@@##
+                :@@######@@%
+                   @@@@##%@%
+                     @@##@@%
+                       @@@@%
+                       ::-::`;
+
+const LOBSTER_LEFT_OPEN = `                                               @@@@@@@@@@@
                                              =@@++++*****@@
                                            @@%++++++**@@@        #@@
                                          @@+++++++**@@++=  @@@@  -==@@
@@ -428,6 +472,7 @@ export default function Claw() {
   // Agent 2 messages (x402 buyer)
   const [agent2Msgs, setAgent2Msgs] = useState<ChatMsg[]>([]);
 
+  const [clawOpen, setClawOpen] = useState(true);
   const [cronRunning, setCronRunning] = useState(false);
   const cronTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cronStoppedRef = useRef(false);
@@ -438,6 +483,12 @@ export default function Claw() {
       cronStoppedRef.current = true;
       if (cronTimerRef.current) clearTimeout(cronTimerRef.current);
     };
+  }, []);
+
+  // Animate lobster claw open/close every 1 second
+  useEffect(() => {
+    const interval = setInterval(() => setClawOpen((prev) => !prev), 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const formattedBalance = balance
@@ -698,7 +749,7 @@ export default function Claw() {
       <div style={{ flex: 1, display: "flex", gap: 16, padding: "24px 0", minHeight: 0, alignItems: "stretch" }}>
         {/* Left lobster */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, paddingLeft: 16, paddingRight: 4 }}>
-          <pre style={{ fontFamily: "monospace", fontSize: "0.3rem", lineHeight: 1.1, color: "#C457D0", textShadow: "0 0 12px rgba(196,87,208,0.5)", margin: 0, whiteSpace: "pre" }}>{LOBSTER_LEFT}</pre>
+          <pre style={{ fontFamily: "monospace", fontSize: "0.3rem", lineHeight: 1.1, color: "#C457D0", textShadow: "0 0 12px rgba(196,87,208,0.5)", margin: 0, whiteSpace: "pre" }}>{clawOpen ? LOBSTER_LEFT_OPEN : LOBSTER_LEFT_CLOSED}</pre>
         </div>
 
         {/* Agent 1 - Price Cron */}
