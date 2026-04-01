@@ -638,7 +638,7 @@ export default function Claw() {
                      =====`}</pre>
         </div>
         <ChatBox />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: "0 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, paddingLeft: 0, paddingRight: 24 }}>
           <pre
             style={{
               fontFamily: "monospace",
