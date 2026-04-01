@@ -41,6 +41,7 @@ const labelStyle = {
 interface ChatMsg {
   text: string;
   type: "info" | "price" | "buy" | "x402" | "error";
+  link?: { label: string; url: string };
 }
 
 function AgentPanel({
@@ -152,6 +153,23 @@ function AgentPanel({
             }}
           >
             {msg.text}
+            {msg.link && (
+              <div style={{ marginTop: 6 }}>
+                <a
+                  href={msg.link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "#C457D0",
+                    fontSize: "0.78rem",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 3,
+                  }}
+                >
+                  {msg.link.label}
+                </a>
+              </div>
+            )}
           </div>
         ))}
         <div ref={endRef} />
@@ -426,44 +444,79 @@ export default function Claw() {
     ? `${parseFloat(balance.formatted).toFixed(4)} ${balance.symbol ?? "0G"}`
     : null;
 
-  // ── Mock x402 buy flow on Agent 2 ───────────────────────────
-  function triggerX402Buy(price: string) {
+  // ── x402 buy flow on Agent 2 (real 0G transfers, server-signed) ──
+  async function triggerX402Buy(price: string) {
     const now = () => new Date().toLocaleTimeString();
-    const wallet = "0x7a3b...f42d";
 
     setAgent2Msgs((prev) => [
       ...prev,
       { text: `[${now()}] Signal received from Agent 1: BUY at ${price}`, type: "info" },
     ]);
 
-    setTimeout(() => {
-      setAgent2Msgs((prev) => [
-        ...prev,
-        { text: `[${now()}] POST https://rpc-testnet.0g.ai/v1/swap/ETH\n  => HTTP 402 Payment Required`, type: "x402" },
-      ]);
-    }, 800);
+    await new Promise((r) => setTimeout(r, 800));
+    setAgent2Msgs((prev) => [
+      ...prev,
+      { text: `[${now()}] POST https://rpc-testnet.0g.ai/v1/swap/ETH\n  => HTTP 402 Payment Required`, type: "x402" },
+    ]);
 
-    setTimeout(() => {
-      setAgent2Msgs((prev) => [
-        ...prev,
-        { text: `[${now()}] x402 payment details:\n  Amount: 0.01 0G\n  Network: 0G Galileo Testnet\n  Wallet: ${wallet}`, type: "x402" },
-      ]);
-    }, 1600);
+    await new Promise((r) => setTimeout(r, 800));
+    setAgent2Msgs((prev) => [
+      ...prev,
+      { text: `[${now()}] Signing x402 payment with agent key...`, type: "x402" },
+    ]);
 
-    setTimeout(() => {
-      const txHash = "0x" + Array.from({ length: 12 }, () => Math.floor(Math.random() * 16).toString(16)).join("") + "...";
-      setAgent2Msgs((prev) => [
-        ...prev,
-        { text: `[${now()}] Payment signed & broadcast\n  TX: ${txHash}\n  Chain: 0G Galileo (16602)\n  Status: CONFIRMED`, type: "x402" },
-      ]);
-    }, 2800);
+    try {
+      // Real transfer #1: x402 payment
+      const payRes = await fetch("/api/x402/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: "0.0001" }),
+      });
+      const payData = await payRes.json();
 
-    setTimeout(() => {
+      if (!payRes.ok) throw new Error(payData.error);
+
+      const shortFrom = `${payData.from.slice(0, 6)}...${payData.from.slice(-4)}`;
       setAgent2Msgs((prev) => [
         ...prev,
-        { text: `[${now()}] Buy order executed: 0.1 ETH @ ${price}`, type: "buy" },
+        {
+          text: `[${now()}] x402 payment confirmed\n  Amount: 0.0001 0G\n  From: ${shortFrom}\n  To:   ${shortFrom} (self-settle)\n  TX: ${payData.txHash.slice(0, 18)}...\n  Chain: 0G Galileo (16602)`,
+          type: "x402",
+          link: { label: "View on 0G Explorer", url: `https://chainscan-galileo.0g.ai/tx/${payData.txHash}` },
+        },
       ]);
-    }, 3600);
+
+      // Real transfer #2: buy order
+      await new Promise((r) => setTimeout(r, 1000));
+      setAgent2Msgs((prev) => [
+        ...prev,
+        { text: `[${now()}] Executing buy order...`, type: "buy" },
+      ]);
+
+      const buyRes = await fetch("/api/x402/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: "0.0001" }),
+      });
+      const buyData = await buyRes.json();
+
+      if (!buyRes.ok) throw new Error(buyData.error);
+
+      setAgent2Msgs((prev) => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          text: `[${now()}] Buy order executed: 0.1 ETH @ ${price}\n  TX: ${buyData.txHash.slice(0, 18)}...`,
+          type: "buy",
+          link: { label: "View on 0G Explorer", url: `https://chainscan-galileo.0g.ai/tx/${buyData.txHash}` },
+        };
+        return updated;
+      });
+    } catch (err: unknown) {
+      setAgent2Msgs((prev) => [
+        ...prev,
+        { text: `[${now()}] x402 payment failed: ${err instanceof Error ? err.message : String(err)}`, type: "error" },
+      ]);
+    }
   }
 
   // ── Cron: Agent 1 gets price, if bullish → trigger Agent 2 ──
