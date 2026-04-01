@@ -9,181 +9,6 @@ const spaceGrotesk = Space_Grotesk({
   weight: ["400", "500", "700"],
 });
 
-function DancingLobster() {
-  const claws = [
-    "        |\\    /|        ",
-    "        | \\  / |        ",
-    "        |  \\/  |        ",
-    "       /|      |\\       ",
-    "      / |      | \\      ",
-    "     /  |      |  \\     ",
-    "    /  /|      |\\  \\    ",
-    "   |  / |      | \\  |   ",
-    "   | /   \\    /   \\ |   ",
-    "   ||     \\  /     ||   ",
-    "   ||      \\/      ||   ",
-  ].join("\n");
-
-  const body = [
-    "    \\   ________   /    ",
-    "     \\ |        | /     ",
-    "      \\|   **   |/      ",
-    "       |  \\__/  |       ",
-    "       |________|       ",
-    "       |  ||||  |       ",
-    "       |  ||||  |       ",
-    "  ~~~~ |  ||||  | ~~~~  ",
-    "  ~~~~ |  ||||  | ~~~~  ",
-    "  ~~~~ |  ||||  | ~~~~  ",
-    "  ~~~~ |  ||||  | ~~~~  ",
-    "       |  ||||  |       ",
-    "       |  ||||  |       ",
-    "       /  ||||  \\       ",
-    "      / / |||| \\ \\      ",
-    "     / /  ||||  \\ \\     ",
-    "    /_/   ||||   \\_\\    ",
-    "          ||||          ",
-    "         / || \\         ",
-    "        /  ||  \\        ",
-    "       /  /  \\  \\       ",
-    "      /  /    \\  \\      ",
-    "     /__/      \\__\\     ",
-  ].join("\n");
-
-  return (
-    <div
-      style={{
-        width: 240,
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-      }}
-    >
-      <style>{`
-        @keyframes claw-wave {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-10deg); }
-          50% { transform: rotate(10deg); }
-          75% { transform: rotate(-6deg); }
-        }
-        @keyframes claw-snap {
-          0%, 70%, 100% { transform: scaleX(1); }
-          80% { transform: scaleX(0.85); }
-          90% { transform: scaleX(1.05); }
-        }
-      `}</style>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <pre
-          style={{
-            fontFamily: "monospace",
-            fontSize: "0.55rem",
-            lineHeight: 1.1,
-            color: "#C457D0",
-            textShadow: "0 0 12px rgba(196, 87, 208, 0.5)",
-            margin: 0,
-            textAlign: "center",
-            whiteSpace: "pre",
-            animation: "claw-wave 0.8s ease-in-out infinite",
-            transformOrigin: "center bottom",
-          }}
-        >
-          {claws}
-        </pre>
-        <pre
-          style={{
-            fontFamily: "monospace",
-            fontSize: "0.55rem",
-            lineHeight: 1.1,
-            color: "#C457D0",
-            textShadow: "0 0 12px rgba(196, 87, 208, 0.5)",
-            margin: 0,
-            textAlign: "center",
-            whiteSpace: "pre",
-          }}
-        >
-          {body}
-        </pre>
-      </div>
-      <span
-        style={{
-          fontSize: "0.75rem",
-          color: "#B284BE",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          fontWeight: 600,
-        }}
-      >
-        Player
-      </span>
-    </div>
-  );
-}
-
-function ClawArt() {
-  const claw = `
-    \\___/
-     | |
-     | |
-    /   \\
-   / ___ \\
-  | /   \\ |
-  |/     \\|
-   \\     /
-    \\   /
-     \\_/
-      |
-      |
-   ,--+--.
-  /  0G   \\
- |  CLAW   |
-  \\       /
-   '-----'
-  `;
-
-  return (
-    <div
-      style={{
-        width: 200,
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-      }}
-    >
-      <pre
-        style={{
-          fontFamily: "monospace",
-          fontSize: "0.7rem",
-          lineHeight: 1.2,
-          color: "#C457D0",
-          textShadow: "0 0 10px rgba(196, 87, 208, 0.4)",
-          margin: 0,
-          textAlign: "center",
-          animation: "claw-snap 2.5s ease-in-out infinite",
-        }}
-      >
-        {claw}
-      </pre>
-      <span
-        style={{
-          fontSize: "0.75rem",
-          color: "#B284BE",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
-          fontWeight: 600,
-        }}
-      >
-        Dealer
-      </span>
-    </div>
-  );
-}
-
 function ChatBox() {
   const [messages, setMessages] = useState<{ text: string; sender: "user" | "bot" }[]>([
     { text: "Welcome to 0G Claw! Ready to play?", sender: "bot" },
@@ -746,20 +571,36 @@ export default function Claw() {
         </ConnectButton.Custom>
       </header>
 
-      {/* Main content: NFT left | Chat center | NFT right */}
+      {/* Main content: lob.png far left | Chat */}
       <div
         style={{
           flex: 1,
           display: "flex",
           gap: 24,
-          padding: 24,
+          padding: "24px 0",
           minHeight: 0,
           alignItems: "stretch",
         }}
       >
-        <DancingLobster />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Image
+            src="/lob.png"
+            alt="Lobster"
+            width={200}
+            height={200}
+            style={{ borderRadius: 0 }}
+          />
+        </div>
         <ChatBox />
-        <ClawArt />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Image
+            src="/lob.png"
+            alt="Lobster"
+            width={200}
+            height={200}
+            style={{ borderRadius: 0 }}
+          />
+        </div>
       </div>
 
       {showInftModal && <InftModal onClose={() => setShowInftModal(false)} />}
