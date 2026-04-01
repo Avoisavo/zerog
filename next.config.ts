@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     "@0glabs/0g-serving-broker",
     "ethers",
   ],
+  typescript: {
+    tsconfigPath: "tsconfig.build.json",
+  },
 };
 
 export default nextConfig;
