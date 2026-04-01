@@ -1,4 +1,5 @@
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 import { Space_Grotesk } from "next/font/google";
 
 const spaceGrotesk = Space_Grotesk({
@@ -9,6 +10,7 @@ const spaceGrotesk = Space_Grotesk({
 const Silk = dynamic(() => import("@/components/Silk"), { ssr: false });
 
 export default function Home() {
+  const router = useRouter();
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative", background: "#320A46" }}>
       <Silk
@@ -59,6 +61,7 @@ export default function Home() {
         </h1>
         <button
           className={spaceGrotesk.className}
+          onClick={() => router.push("/claw")}
           style={{
             padding: "14px 48px",
             fontSize: "1.1rem",
