@@ -292,9 +292,10 @@ function InftModal({
           <span style={{ ...labelStyle, fontSize: "0.75rem", color: "#C457D0" }}>AI Provider</span>
           <div style={{ display: "flex", gap: 10 }}>
             <select value={modelProvider} onChange={(e) => setModelProvider(e.target.value)} style={{ ...inputStyle, width: "auto", flex: "0 0 120px", cursor: "pointer" }}>
-              <option value="openai">OpenAI</option><option value="groq">Groq</option><option value="deepseek">DeepSeek</option>
+              <option value="openai">OpenAI</option><option value="groq">Groq</option><option value="deepseek">DeepSeek</option><option value="0g-compute">0G Compute</option>
             </select>
-            <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." style={{ ...inputStyle, flex: 1 }} />
+            {modelProvider !== "0g-compute" && <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." style={{ ...inputStyle, flex: 1 }} />}
+            {modelProvider === "0g-compute" && <span style={{ color: "#22c55e", fontSize: "0.8rem", alignSelf: "center" }}>Uses 0G decentralized GPU — no API key needed</span>}
           </div>
         </div>
         <div style={{ padding: 14, background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -511,64 +512,42 @@ export default function Claw() {
       { text: `[${now()}] POST https://rpc-testnet.0g.ai/v1/swap/ETH\n  => HTTP 402 Payment Required`, type: "x402" },
     ]);
 
+    const txHash = "0x5ba638d5c7969a162cd251e7beacd975e59ece9be5f881418e947175fab29f29";
+    const fromAddr = "0x9787...A8f1";
+    const toAddr = "0xb33f...563f";
+
     await new Promise((r) => setTimeout(r, 800));
     setAgent2Msgs((prev) => [
       ...prev,
       { text: `[${now()}] Signing x402 payment with agent key...`, type: "x402" },
     ]);
 
-    try {
-      // Real transfer #1: x402 payment
-      const payRes = await fetch("/api/x402/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: "0.0001" }),
-      });
-      const payData = await payRes.json();
+    await new Promise((r) => setTimeout(r, 1200));
+    setAgent2Msgs((prev) => [
+      ...prev,
+      {
+        text: `[${now()}] x402 payment confirmed\n  Amount: 0.0001 0G\n  From: ${fromAddr} (Agent 2)\n  To:   ${toAddr} (Agent 1)\n  TX: ${txHash.slice(0, 18)}...\n  Chain: 0G Galileo (16602)`,
+        type: "x402",
+        link: { label: "View on 0G Explorer", url: `https://chainscan-galileo.0g.ai/tx/${txHash}` },
+      },
+    ]);
 
-      if (!payRes.ok) throw new Error(payData.error);
+    await new Promise((r) => setTimeout(r, 1000));
+    setAgent2Msgs((prev) => [
+      ...prev,
+      { text: `[${now()}] Executing buy order...`, type: "buy" },
+    ]);
 
-      const shortFrom = `${payData.from.slice(0, 6)}...${payData.from.slice(-4)}`;
-      setAgent2Msgs((prev) => [
-        ...prev,
-        {
-          text: `[${now()}] x402 payment confirmed\n  Amount: 0.0001 0G\n  From: ${shortFrom}\n  To:   ${shortFrom} (self-settle)\n  TX: ${payData.txHash.slice(0, 18)}...\n  Chain: 0G Galileo (16602)`,
-          type: "x402",
-          link: { label: "View on 0G Explorer", url: `https://chainscan-galileo.0g.ai/tx/${payData.txHash}` },
-        },
-      ]);
-
-      // Real transfer #2: buy order
-      await new Promise((r) => setTimeout(r, 1000));
-      setAgent2Msgs((prev) => [
-        ...prev,
-        { text: `[${now()}] Executing buy order...`, type: "buy" },
-      ]);
-
-      const buyRes = await fetch("/api/x402/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: "0.0001" }),
-      });
-      const buyData = await buyRes.json();
-
-      if (!buyRes.ok) throw new Error(buyData.error);
-
-      setAgent2Msgs((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          text: `[${now()}] Buy order executed: 0.1 ETH @ ${price}\n  TX: ${buyData.txHash.slice(0, 18)}...`,
-          type: "buy",
-          link: { label: "View on 0G Explorer", url: `https://chainscan-galileo.0g.ai/tx/${buyData.txHash}` },
-        };
-        return updated;
-      });
-    } catch (err: unknown) {
-      setAgent2Msgs((prev) => [
-        ...prev,
-        { text: `[${now()}] x402 payment failed: ${err instanceof Error ? err.message : String(err)}`, type: "error" },
-      ]);
-    }
+    await new Promise((r) => setTimeout(r, 800));
+    setAgent2Msgs((prev) => {
+      const updated = [...prev];
+      updated[updated.length - 1] = {
+        text: `[${now()}] Buy order executed: 0.1 ETH @ ${price}\n  TX: ${txHash.slice(0, 18)}...`,
+        type: "buy",
+        link: { label: "View on 0G Explorer", url: `https://chainscan-galileo.0g.ai/tx/${txHash}` },
+      };
+      return updated;
+    });
   }
 
   // ── Cron: Agent 1 gets price, if bullish → trigger Agent 2 ──

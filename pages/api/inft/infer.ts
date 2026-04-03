@@ -6,6 +6,7 @@ import { readFileSync, unlinkSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { decrypt } from "@/lib/encrypt";
+import { getComputeBroker } from "@/lib/0g-compute";
 
 const ZG_RPC = "https://evmrpc-testnet.0g.ai";
 const ZG_INDEXER = "https://indexer-storage-testnet-turbo.0g.ai";
@@ -34,6 +35,66 @@ const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
   groq: "llama-3.3-70b-versatile",
   deepseek: "deepseek-chat",
 };
+
+// 0G Compute testnet providers
+const ZG_COMPUTE_PROVIDERS = [
+  { address: "0xa48f01287233509FD694a22Bf840225062E67836", model: "qwen/qwen-2.5-7b-instruct" },
+  { address: "0x8e60d466FD16798Bec4868aa4CE38586D5590049", model: "openai/gpt-oss-20b" },
+  { address: "0x69Eb5a0BD7d0f4bF39eD5CE9Bd3376c61863aE08", model: "google/gemma-3-27b-it" },
+];
+
+/**
+ * Call LLM via 0G Compute Network (decentralized GPU)
+ */
+async function callVia0GCompute(
+  systemPrompt: string,
+  message: string,
+  maxTokens = 500
+): Promise<{ reply: string; model: string; provider: string }> {
+  const broker = await getComputeBroker();
+
+  // Try each provider until one works
+  let lastError: Error | null = null;
+  for (const p of ZG_COMPUTE_PROVIDERS) {
+    try {
+      const { endpoint, model } = await broker.inference.getServiceMetadata(p.address);
+      const headers = await broker.inference.getRequestHeaders(p.address);
+
+      const resp = await fetch(`${endpoint}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message },
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(`0G Compute ${p.model}: ${errText}`);
+      }
+
+      const data = await resp.json();
+      const reply = data.choices?.[0]?.message?.content || "No response";
+
+      // Process response for billing
+      try {
+        await broker.inference.processResponse(p.address, data.id, reply);
+      } catch { /* billing settle can fail silently */ }
+
+      return { reply, model, provider: p.address };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.log(`[0g-compute] Provider ${p.model} failed: ${lastError.message}`);
+    }
+  }
+  throw new Error(`All 0G Compute providers failed. Last: ${lastError?.message}`);
+}
 
 interface AgentConfig {
   botId?: string;
@@ -189,7 +250,32 @@ export default async function handler(
       console.log(`[infer] agentConfig fetched: ${!!agentConfig}, provider: ${agentConfig?.modelProvider}, hasKey: ${!!agentConfig?.apiKey}, encrypted: ${agentConfig?.encrypted}`);
     }
 
-    // 4. If we have a stored config with API key — decrypt and call the provider
+    // 4a. If provider is 0G Compute — use decentralized GPU network (no API key needed)
+    if (agentConfig && agentConfig.modelProvider?.toLowerCase() === "0g-compute") {
+      const systemPrompt = agentConfig.systemPrompt || `You are ${p.botId}.`;
+      const tokens = maxTokens || 500;
+
+      try {
+        const result = await callVia0GCompute(systemPrompt, message, tokens);
+        return res.status(200).json({
+          success: true,
+          tokenId,
+          agent: p.botId,
+          response: result.reply,
+          source: "0g-compute",
+          model: result.model,
+          provider: result.provider,
+          configOnStorage: true,
+        });
+      } catch (err) {
+        console.error(`[infer] 0G Compute failed:`, err);
+        return res.status(502).json({
+          error: `0G Compute inference failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
+
+    // 4b. If we have a stored config with API key — decrypt and call the provider
     if (agentConfig && agentConfig.apiKey && agentConfig.modelProvider) {
       const provider = agentConfig.modelProvider.toLowerCase();
       const systemPrompt = agentConfig.systemPrompt || `You are ${p.botId}.`;
